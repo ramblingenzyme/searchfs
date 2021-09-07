@@ -1,1 +1,1 @@
-export type SearchParams = Record<string, string[]>
+export type SearchParams = Record<string, string[]>;

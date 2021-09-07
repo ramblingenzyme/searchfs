@@ -16,8 +16,8 @@ enum DirType {
 type SearchDirectory = {
     entity: string | undefined;
     params: SearchParams;
-    type: DirType.Search
-}
+    type: DirType.Search;
+};
 
 interface ResultDirectory {
     entity: string;
@@ -41,9 +41,7 @@ export class SearchFuse extends FuseOps {
     }
 
     private static getSplitPath(path: string) {
-        return path
-            .split("/")
-            .filter(x => !!x);
+        return path.split("/").filter((x) => !!x);
     }
 
     private static getParams(splitPath: readonly string[]): SearchParams {
@@ -72,7 +70,7 @@ export class SearchFuse extends FuseOps {
         const pathLength = splitPath.length;
 
         const last = splitPath[pathLength - 1];
-        const secondLast = splitPath[pathLength - 2]
+        const secondLast = splitPath[pathLength - 2];
 
         if (pathLength === 0) {
             return {
@@ -84,19 +82,24 @@ export class SearchFuse extends FuseOps {
             return {
                 entity: last,
                 params: SearchFuse.getParams(splitPath),
-                type: DirType.Search
+                type: DirType.Search,
             };
         } else if (this.#searcher.entities.includes(secondLast)) {
             return {
                 entity: secondLast,
                 key: last,
                 type: DirType.Result,
-            }
+            };
         }
     }
 
-    private async getSearchDirectory(searchDir: SearchDirectory): Promise<FuseEntry[]> {
-        const entries = await this.#searcher.search(searchDir.entity, searchDir.params);
+    private async getSearchDirectory(
+        searchDir: SearchDirectory
+    ): Promise<FuseEntry[]> {
+        const entries = await this.#searcher.search(
+            searchDir.entity,
+            searchDir.params
+        );
 
         let results: FuseEntry[] = [];
         for (const entry of entries) {
@@ -106,8 +109,13 @@ export class SearchFuse extends FuseOps {
         return this.#baseSearchResults.concat(results);
     }
 
-    private async getResultDirectory(resultDir: ResultDirectory): Promise<FuseEntry[]> {
-        const entries = await this.#searcher.getEntity(resultDir.entity, resultDir.key);
+    private async getResultDirectory(
+        resultDir: ResultDirectory
+    ): Promise<FuseEntry[]> {
+        const entries = await this.#searcher.getEntity(
+            resultDir.entity,
+            resultDir.key
+        );
         const results: FuseEntry[] = [];
 
         // these are gonna be files? Mix of files/directories? How to agnostically differentiate?
@@ -118,7 +126,10 @@ export class SearchFuse extends FuseOps {
         return results;
     }
 
-    async readdir(path: string, cb: (e: Error | null, dirs?: string[], stats?: Stats[]) => any) {
+    async readdir(
+        path: string,
+        cb: (e: Error | null, dirs?: string[], stats?: Stats[]) => any
+    ) {
         try {
             let entries: FuseEntry[] = [];
             let dirs: string[] = [];
@@ -138,7 +149,7 @@ export class SearchFuse extends FuseOps {
             }
 
             cb(null, dirs, stats);
-        } catch(e) {
+        } catch (e) {
             cb(e as Error);
         }
     }

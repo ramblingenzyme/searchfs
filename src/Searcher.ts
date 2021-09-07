@@ -12,6 +12,9 @@ export abstract class Searcher {
         this.entities = entities;
     }
 
-   abstract search(entity: string | undefined, params: SearchParams): Promise<string[]>;
-   abstract getEntity(entity: string, id: string): Promise<string[]>;
-};
+    abstract search(
+        entity: string | undefined,
+        params: SearchParams
+    ): Promise<string[]>;
+    abstract getEntity(entity: string, id: string): Promise<string[]>;
+}
