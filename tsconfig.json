@@ -1,7 +1,8 @@
 {
     "compilerOptions": {
         "incremental": true /* Enable incremental compilation */,
-        "target": "es2020" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+        "target": "es6" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+        "lib": ["ES2020"],
         "module": "commonjs" /* Specify what module code is generated. */,
 
         "outDir": "./dist" /* Specify an output folder for all emitted files. */,

@@ -1,5 +1,5 @@
 import { Stats } from "fs";
-import { FuseOps } from "fuse-native";
+import { FuseOps } from "./FuseOps";
 import { Searcher } from "./Searcher";
 import { SearchParams } from "./types";
 
