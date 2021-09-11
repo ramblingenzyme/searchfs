@@ -258,12 +258,11 @@ describe("SearchFuse", () => {
                 try {
                     expect(errno).toBe(0);
                     expect(dirs).toEqual([
-                        "a",
-                        // ...new Set(
-                        //     BookSearcher.books
-                        //         .filter((b) => b.tags.includes("Fantasy"))
-                        //         .flatMap((b) => b.tags)
-                        // ),
+                        ...new Set(
+                            BookSearcher.books
+                                .filter((b) => b.tags.includes("Fantasy"))
+                                .flatMap((b) => b.tags)
+                        ),
                     ]);
                     expect(stats).toEqual([]);
 
