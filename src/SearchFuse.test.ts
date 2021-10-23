@@ -107,6 +107,7 @@ describe("SearchFuse", () => {
     });
 
     describe("BookSearcher", () => {
+        const entities = ["books", "tags", "author"];
         class BookSearcher extends Searcher {
             static books = [
                 {
@@ -127,7 +128,15 @@ describe("SearchFuse", () => {
             ];
 
             constructor() {
-                super(["books", "tags", "author"]);
+                super(entities);
+            }
+
+            hasValue(data: string | string[], value: string) {
+                if (Array.isArray(data)) {
+                    return data.includes(value);
+                } else {
+                    return data === value;
+                }
             }
 
             search(
@@ -141,26 +150,17 @@ describe("SearchFuse", () => {
                 const matchedBooks = BookSearcher.books.filter((book) => {
                     // every value of every param exists on the book
                     return paramsArray.every(([key, values]) =>
-                        values.every((v) => {
-                            const bookValue = book[key];
-                            if (Array.isArray(bookValue)) {
-                                return bookValue.includes(v);
-                            } else {
-                                return bookValue === v;
-                            }
-                        })
+                        values.every((v) => this.hasValue(book[key], v))
                     );
                 });
 
                 const returnedProperty = entity === "books" ? "title" : entity;
 
-                return Promise.resolve(
-                    matchedBooks
-                        .flatMap((b) => b[returnedProperty])
-                        .filter(
-                            (value, index, arr) => arr.indexOf(value) === index
-                        )
+                const bookEntries = new Set(
+                    matchedBooks.flatMap((b) => b[returnedProperty])
                 );
+
+                return Promise.resolve([...this.entities, ...bookEntries]);
             }
 
             getEntity(
@@ -169,18 +169,11 @@ describe("SearchFuse", () => {
             ): Promise<string[]> {
                 const key = entity === "books" ? "title" : entity;
 
-                return Promise.resolve(
-                    BookSearcher.books
-                        .filter((book) => {
-                            const bookValue = book[key];
-                            if (Array.isArray(bookValue)) {
-                                return bookValue.includes(id);
-                            } else {
-                                return bookValue === id;
-                            }
-                        })
-                        .map((b) => b.title)
-                );
+                const books = BookSearcher.books
+                    .filter((book) => this.hasValue(book[key], id))
+                    .map((b) => b.title);
+
+                return Promise.resolve([...this.entities, ...books]);
             }
         }
 
@@ -191,9 +184,10 @@ describe("SearchFuse", () => {
             searchFuse.readdir("/books", (errno, dirs, stats) => {
                 try {
                     expect(errno).toBe(0);
-                    expect(dirs).toEqual(
-                        BookSearcher.books.map((b) => b.title)
-                    );
+                    expect(dirs).toEqual([
+                        ...entities,
+                        ...BookSearcher.books.map((b) => b.title),
+                    ]);
                     expect(stats).toEqual([]);
 
                     done();
@@ -208,6 +202,7 @@ describe("SearchFuse", () => {
                 try {
                     expect(errno).toBe(0);
                     expect(dirs).toEqual([
+                        ...entities,
                         ...new Set(BookSearcher.books.flatMap((b) => b.tags)),
                     ]);
                     expect(stats).toEqual([]);
@@ -223,9 +218,10 @@ describe("SearchFuse", () => {
             searchFuse.readdir("/author", (errno, dirs, stats) => {
                 try {
                     expect(errno).toBe(0);
-                    expect(dirs).toEqual(
-                        BookSearcher.books.map((b) => b.author)
-                    );
+                    expect(dirs).toEqual([
+                        ...entities,
+                        ...BookSearcher.books.map((b) => b.author),
+                    ]);
                     expect(stats).toEqual([]);
 
                     done();
@@ -239,11 +235,12 @@ describe("SearchFuse", () => {
             searchFuse.readdir("/tags/Fantasy/", (errno, dirs, stats) => {
                 try {
                     expect(errno).toBe(0);
-                    expect(dirs).toEqual(
-                        BookSearcher.books
+                    expect(dirs).toEqual([
+                        ...entities,
+                        ...BookSearcher.books
                             .filter((b) => b.tags.includes("Fantasy"))
-                            .map((b) => b.title)
-                    );
+                            .map((b) => b.title),
+                    ]);
                     expect(stats).toEqual([]);
 
                     done();
@@ -258,6 +255,7 @@ describe("SearchFuse", () => {
                 try {
                     expect(errno).toBe(0);
                     expect(dirs).toEqual([
+                        ...entities,
                         ...new Set(
                             BookSearcher.books
                                 .filter((b) => b.tags.includes("Fantasy"))
