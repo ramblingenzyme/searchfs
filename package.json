@@ -3,6 +3,11 @@
     "version": "1.0.0",
     "main": "index.js",
     "license": "MIT",
+    "scripts": {
+        "build": "tsc",
+        "start": "yarn node dist/index.js",
+        "test": "jest"
+    },
     "dependencies": {
         "fuse-native": "^2.2.6"
     },
