@@ -45,24 +45,20 @@ export class SearchFuse implements FuseOps {
         const params: SearchParams = {};
         const isEntity = (x: string) => this.#searcher.entities.includes(x);
 
-        for (const [index, entry] of splitPath.entries()) {
-            const nextEntry = splitPath[index + 1];
+        for (const [index, entityCandidate] of splitPath.entries()) {
+            const value = splitPath[index + 1];
 
-            if (
-                !lastWasEntity &&
-                isEntity(entry) &&
-                !!nextEntry &&
-                !isEntity(nextEntry)
-            ) {
-                lastWasEntity = true;
-                const key = entry;
-                if (!params[key]) {
-                    params[key] = [];
+            if (lastWasEntity || !value) {
+                lastWasEntity = false;
+            } else if (isEntity(entityCandidate) && !isEntity(value)) {
+                const entity = entityCandidate;
+                if (!params[entity]) {
+                    params[entity] = [];
                 }
 
-                params[key].push(nextEntry);
-            } else {
-                lastWasEntity = false;
+                params[entity].push(value);
+
+                lastWasEntity = true;
             }
         }
 
