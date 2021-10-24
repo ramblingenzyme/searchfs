@@ -4,13 +4,26 @@ declare module "fuse-native" {
     export interface FuseOps {
         readdir(
             path: string,
-            cb: (e: number, dirs?: string[], stats?: Partial<Stats>[]) => void
+            cb: (
+                errno: number,
+                dirs?: string[],
+                stats?: Partial<Stats>[]
+            ) => void
         ): void;
 
         getattr(
             path: string,
-            cb: (e: number, stats?: Partial<Stats>) => void
+            cb: (errno: number, stats?: Partial<Stats>) => void
         ): void;
+
+        read(
+            path: string,
+            fd: number,
+            buffer: Buffer,
+            length: number,
+            position: number,
+            cb: (bytesRead: number) => void
+        );
     }
 
     export interface Opts {}

@@ -12,6 +12,7 @@ interface FuseEntry {
 enum DirType {
     Search = "SEARCH",
     Result = "RESULT",
+    ResultProperty = "RESULT_PROPERTY",
     Root = "ROOT",
 }
 
@@ -27,7 +28,18 @@ interface ResultDirectory {
     type: DirType.Result;
 }
 
-type DirectoryType = SearchDirectory | ResultDirectory | DirType.Root;
+interface ResultPropertyDirectory {
+    entity: string;
+    key: string;
+    property: string;
+    type: DirType.ResultProperty;
+}
+
+type DirectoryType =
+    | SearchDirectory
+    | ResultDirectory
+    | ResultPropertyDirectory
+    | DirType.Root;
 
 export class SearchFuse implements FuseOps {
     #searcher: Searcher;
@@ -77,16 +89,26 @@ export class SearchFuse implements FuseOps {
         for (let i = lastIndex; i >= 0; i--) {
             if (this.#searcher.entities.includes(splitPath[i])) {
                 if (i === lastIndex) {
+                    // /*/Entity
                     return {
                         entity: splitPath[i],
                         params: this.getParams(splitPath),
                         type: DirType.Search,
                     };
-                } else {
+                } else if (i === lastIndex - 1) {
+                    // /*/Entity/key/
                     return {
                         entity: splitPath[i],
                         key: splitPath[i + 1],
                         type: DirType.Result,
+                    };
+                } else if (i === lastIndex - 2) {
+                    // /*/Entity/key/property
+                    return {
+                        entity: splitPath[i],
+                        key: splitPath[i + 1],
+                        property: splitPath[i + 2],
+                        type: DirType.ResultProperty,
                     };
                 }
             }
@@ -116,10 +138,8 @@ export class SearchFuse implements FuseOps {
             resultDir.entity,
             resultDir.key
         );
-        const results: FuseEntry[] = [];
 
-        // these are gonna be files? Mix of files/directories? How to agnostically differentiate?
-        // everything's a directory at the moment.
+        let results: FuseEntry[] = [];
         for (const entry of entries) {
             results.push({ name: entry });
         }
@@ -128,10 +148,12 @@ export class SearchFuse implements FuseOps {
     }
 
     private getRootDirectory() {
-        return this.#searcher.entities.map((e) => ({
-            name: e,
-            stats: stat({ mode: "dir" }),
-        }));
+        let results: FuseEntry[] = [];
+        for (const entity of this.#searcher.entities) {
+            results.push({ name: entity });
+        }
+
+        return results;
     }
 
     async readdir(
@@ -183,8 +205,21 @@ export class SearchFuse implements FuseOps {
             cb(0, stat({ mode: "dir", size: 4096 }));
         } else if (dirType?.type === DirType.Result) {
             cb(0, stat({ mode: "dir", size: 4096 }));
+        } else if (dirType?.type === DirType.ResultProperty) {
+            cb(0, stat({ mode: "file" })); // TODO: give size of property
         } else {
             cb(Fuse.ENOENT);
         }
+    }
+
+    read(
+        path: string,
+        fd: any,
+        buffer: any,
+        length: number,
+        position: number,
+        cb: (bytesRead: number) => void
+    ) {
+        cb(0);
     }
 }
