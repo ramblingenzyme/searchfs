@@ -9,7 +9,7 @@ interface FuseEntry {
     stats?: Partial<Stats>;
 }
 
-enum DirType {
+enum PathTypeEnum {
     Search = "SEARCH",
     Result = "RESULT",
     ResultProperty = "RESULT_PROPERTY",
@@ -19,27 +19,27 @@ enum DirType {
 type SearchDirectory = {
     entity: string | undefined;
     params: SearchParams;
-    type: DirType.Search;
+    type: PathTypeEnum.Search;
 };
 
 interface ResultDirectory {
     entity: string;
     key: string;
-    type: DirType.Result;
+    type: PathTypeEnum.Result;
 }
 
-interface ResultPropertyDirectory {
+interface ResultPropertyFile {
     entity: string;
     key: string;
     property: string;
-    type: DirType.ResultProperty;
+    type: PathTypeEnum.ResultProperty;
 }
 
-type DirectoryType =
+type PathType =
     | SearchDirectory
     | ResultDirectory
-    | ResultPropertyDirectory
-    | DirType.Root;
+    | ResultPropertyFile
+    | PathTypeEnum.Root;
 
 export class SearchFuse implements FuseOps {
     #searcher: Searcher;
@@ -77,12 +77,12 @@ export class SearchFuse implements FuseOps {
         return params;
     }
 
-    private getDirectoryType(path: string): DirectoryType | undefined {
+    private getPathType(path: string): PathType | undefined {
         const splitPath = SearchFuse.getSplitPath(path);
         const pathLength = splitPath.length;
 
         if (pathLength === 0) {
-            return DirType.Root;
+            return PathTypeEnum.Root;
         }
 
         const lastIndex = pathLength - 1;
@@ -93,14 +93,14 @@ export class SearchFuse implements FuseOps {
                     return {
                         entity: splitPath[i],
                         params: this.getParams(splitPath),
-                        type: DirType.Search,
+                        type: PathTypeEnum.Search,
                     };
                 } else if (i === lastIndex - 1) {
                     // /*/Entity/key/
                     return {
                         entity: splitPath[i],
                         key: splitPath[i + 1],
-                        type: DirType.Result,
+                        type: PathTypeEnum.Result,
                     };
                 } else if (i === lastIndex - 2) {
                     // /*/Entity/key/property
@@ -108,7 +108,7 @@ export class SearchFuse implements FuseOps {
                         entity: splitPath[i],
                         key: splitPath[i + 1],
                         property: splitPath[i + 2],
-                        type: DirType.ResultProperty,
+                        type: PathTypeEnum.ResultProperty,
                     };
                 }
             }
@@ -162,21 +162,21 @@ export class SearchFuse implements FuseOps {
     ) {
         try {
             let entries: FuseEntry[] = [];
-            let dirs: string[] = [];
-            let stats: Partial<Stats>[] = [];
 
-            const dirType = this.getDirectoryType(path);
+            const pathType = this.getPathType(path);
 
-            if (!dirType) {
+            if (!pathType) {
                 return cb(Fuse.ENOENT);
-            } else if (dirType === DirType.Root) {
+            } else if (pathType === PathTypeEnum.Root) {
                 entries = this.getRootDirectory();
-            } else if (dirType.type === DirType.Result) {
-                entries = await this.getResultDirectory(dirType);
-            } else if (dirType.type === DirType.Search) {
-                entries = await this.getSearchDirectory(dirType);
+            } else if (pathType.type === PathTypeEnum.Result) {
+                entries = await this.getResultDirectory(pathType);
+            } else if (pathType.type === PathTypeEnum.Search) {
+                entries = await this.getSearchDirectory(pathType);
             }
 
+            let dirs: string[] = [];
+            let stats: Partial<Stats>[] = [];
             for (const entry of entries) {
                 dirs.push(entry.name);
                 entry.stats && stats.push(entry.stats);
@@ -197,15 +197,15 @@ export class SearchFuse implements FuseOps {
             return cb(Fuse.ENOENT);
         }
 
-        const dirType = this.getDirectoryType(path);
+        const pathType = this.getPathType(path);
 
-        if (dirType === DirType.Root) {
+        if (pathType === PathTypeEnum.Root) {
             cb(0, stat({ mode: "dir", size: 4096 }));
-        } else if (dirType?.type === DirType.Search) {
+        } else if (pathType?.type === PathTypeEnum.Search) {
             cb(0, stat({ mode: "dir", size: 4096 }));
-        } else if (dirType?.type === DirType.Result) {
+        } else if (pathType?.type === PathTypeEnum.Result) {
             cb(0, stat({ mode: "dir", size: 4096 }));
-        } else if (dirType?.type === DirType.ResultProperty) {
+        } else if (pathType?.type === PathTypeEnum.ResultProperty) {
             cb(0, stat({ mode: "file" })); // TODO: give size of property
         } else {
             cb(Fuse.ENOENT);
